@@ -19,7 +19,7 @@ yesOrNo()
     fi
 }
 
-create_repo(){
+createRepo(){
     echo 'GitHub Username:'
     read username
     # no error checking! that's not cool...
@@ -38,7 +38,7 @@ createGitRepo()
         fi
         git remote add origin git@github.com:billcd/$REPO_NAME.git
 
-        create_repo $REPO_NAME
+        createRepo $REPO_NAME
         
         # Again no error checks before we make such a bold statment.
         echo ''
