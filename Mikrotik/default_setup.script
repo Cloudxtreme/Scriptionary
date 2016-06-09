@@ -1,0 +1,76 @@
+# This is a base additional setup I use for most of my Mikrotik routers I install.
+# There really is a lot missing here that I need to add.
+
+
+#PLEASE UPDATE AND INSTALLE NTP PACKAGE FIRST!
+
+#block failed logins
+/ip firewall filter
+
+#ssh---------------------------------
+add chain=input protocol=tcp dst-port=22 src-address-list=ssh_blacklist action=drop \
+comment="drop ssh brute forcers" disabled=no
+
+add chain=input protocol=tcp dst-port=22 connection-state=new \
+src-address-list=ssh_stage3 action=add-src-to-address-list address-list=ssh_blacklist \
+address-list-timeout=10d comment="" disabled=no
+
+add chain=input protocol=tcp dst-port=22 connection-state=new \
+src-address-list=ssh_stage2 action=add-src-to-address-list address-list=ssh_stage3 \
+address-list-timeout=1m comment="" disabled=no
+
+add chain=input protocol=tcp dst-port=22 connection-state=new src-address-list=ssh_stage1 \
+action=add-src-to-address-list address-list=ssh_stage2 address-list-timeout=1m comment="" disabled=no
+
+add chain=input protocol=tcp dst-port=22 connection-state=new action=add-src-to-address-list \
+address-list=ssh_stage1 address-list-timeout=1m comment="" disabled=no
+
+add chain=input protocol=tcp dst-port=22 comment="SSH" action=accept
+
+#winbox ---------------------------------------
+add chain=input protocol=tcp dst-port=8291 src-address-list=winbox_blacklist action=drop \
+comment="drop winbox brute forcers" disabled=no
+
+add chain=input protocol=tcp dst-port=8291 connection-state=new \
+src-address-list=winbox_stage3 action=add-src-to-address-list address-list=winbox_blacklist \
+address-list-timeout=10d comment="" disabled=no
+
+add chain=input protocol=tcp dst-port=8291 connection-state=new \
+src-address-list=winbox_stage2 action=add-src-to-address-list address-list=winbox_stage3 \
+address-list-timeout=5m comment="" disabled=no
+
+add chain=input protocol=tcp dst-port=8291 connection-state=new src-address-list=winbox_stage1 \
+action=add-src-to-address-list address-list=winbox_stage2 address-list-timeout=5m comment="" disabled=no
+
+add chain=input protocol=tcp dst-port=8291 connection-state=new action=add-src-to-address-list \
+address-list=winbox_stage1 address-list-timeout=5m comment="" disabled=no
+
+add chain=input protocol=tcp dst-port=8291 comment="WinBox" action=accept
+
+#DNS-------------------------------------
+/ip dns
+set servers=75.75.75.75,75.75.76.76,8.8.8.8 allow-remote-requests: yes
+
+#NTP---------------------------------------------
+
+/system ntp client
+set enabled=yes server-dns-names=pool.ntp.org
+
+/system ntp server
+set broadcast=no enabled=yes manycast=yes multicast=no
+
+/system clock
+set time-zone-name=America/New_York
+
+
+
+
+/ip firewall filter
+add chain=input action=accept protocol=icmp  comment="default configuration"
+add chain=input action=accept connection-state=established comment="default configuration"
+add chain=input action=accept connection-state=related comment="default configuration"
+add chain=input action=drop in-interface=ether1-gateway comment="default configuration"
+add chain=forward action=accept connection-state=established comment="default configuration"
+add chain=forward action=accept connection-state=related comment="default configuration"
+add chain=forward action=drop connection-state=invalid comment="default configuration"
+
