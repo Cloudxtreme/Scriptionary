@@ -1,3 +1,5 @@
+REM http://stackoverflow.com/questions/22928358/bat-script-for-clear-firefox-cookies-and-cache
+
 @echo off
 taskkill /im "firefox.exe"
 set DataDir=C:\Users\%USERNAME%\AppData\Local\Mozilla\Firefox\Profiles
