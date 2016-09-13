@@ -1,0 +1,11 @@
+link_name: SEB_TO_AP
+
+main:
+  public_ip: PUBLIC IP
+  network_address: INTERNAL NETWORK IP  # must be in cdir
+  gw_interface: ether1-gateway  # default gateway
+
+satellite:
+  public_ip: PUBLIC IP
+  network_address: INTERNAL NETWORK IP # must be in cdir
+  gw_interface: ether1-gateway # default gateway

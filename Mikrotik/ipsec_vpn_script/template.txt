@@ -1,0 +1,111 @@
+Name: LINK_NAME
+
+Router MAIN:
+Public IP: MAIN_PUB
+Network: MAIN_NETWORK
+GW Interface: MAIN_GW_INTERFACE
+
+Router SATELLITE:
+Public IP: SATELLITE_PUB
+Network: SATELLITE_NETWORK
+GW Interface: SATELLITE_GW_INTERFACE
+
+
+
+
+MAIN NETWORK SCRIPT
+
+# --------------------------------------------------------------------------------
+# Step 1
+# Generate MAIN's public key and print
+# --------------------------------------------------------------------------------
+/ip ipsec key
+generate-key key-size=4096 name=LINK_NAME-s
+export-pub-key file-name=LINK_NAME-s.pub key=LINK_NAME-s
+
+# Print the MAIN's public key
+/file
+print detail where name~"LINK_NAME-s.pub"
+
+
+# --------------------------------------------------------------------------------
+# Step 2
+# import SATELLITE's public script and install ipsec
+# --------------------------------------------------------------------------------
+/ip ipsec key
+import file-name=LINK_NAME-c.pub name=LINK_NAME-c
+
+/ip ipsec proposal
+add auth-algorithms=sha1 comment="IPSEC LINK_NAME" disabled=no enc-algorithms=3des lifetime=30m name=LINK_NAME pfs-group=modp1024
+
+/ip ipsec peer
+add address=SATELLITE_PUB comment="IPSEC LINK_NAME" dh-group=modp1024 disabled=no dpd-interval=1m dpd-maximum-failures=2 enc-algorithm=3des exchange-mode=main generate-policy=no hash-algorithm=sha1 lifebytes=0 lifetime=1d nat-traversal=no proposal-check=obey send-initial-contact=yes auth-method=rsa-key key=LINK_NAME-s remote-key=LINK_NAME-c
+
+/ip ipsec policy
+add action=encrypt comment="IPSEC LINK_NAME" disabled=no dst-address=SATELLITE_NETWORK ipsec-protocols=esp level=unique priority=0 proposal=LINK_NAME protocol=all sa-dst-address=SATELLITE_PUB sa-src-address=MAIN_PUB src-address=MAIN_NETWORK tunnel=yes
+
+/ip firewall nat
+add action=accept chain=srcnat comment="IPSEC LINK_NAME" disabled=no dst-address=SATELLITE_NETWORK out-interface=MAIN_GW_INTERFACE src-address=MAIN_NETWORK
+
+/ip firewall filter
+add action=accept chain=input comment="IPSEC LINK_NAME" disabled=no dst-port=500 protocol=udp src-port=500
+add action=accept chain=input comment="IPSEC LINK_NAME" disabled=no protocol=ipsec-esp
+add action=accept chain=output comment="IPSEC LINK_NAME" disabled=no protocol=ipsec-esp
+add action=accept chain=input comment="IPSEC LINK_NAME" disabled=no src-address=SATELLITE_NETWORK
+
+
+
+
+CLINT SIDE SCRIPT
+--------------------------------------------------------------------------------
+
+
+# --------------------------------------------------------------------------------
+# Step 1
+# Import MAIN's public key and generate SATELLITE's public key
+# MAIN's public key must be droped in the file browser before proceding
+# --------------------------------------------------------------------------------
+# Generate shared key and install the MAIN's public key
+/ip ipsec key
+generate-key key-size=4096 name=LINK_NAME-c
+export-pub-key file-name=LINK_NAME-c.pub key=LINK_NAME-c
+import file-name=LINK_NAME-s.pub name=LINK_NAME-s
+
+
+
+# --------------------------------------------------------------------------------
+# Step 2
+# Print the public key for MAIN -- this output should be send to MAIN admin
+# this does not reliably print during step one -- no idea why at this point
+# --------------------------------------------------------------------------------
+/file
+print detail where name~"LINK_NAME-c.pub"
+
+
+
+# --------------------------------------------------------------------------------
+# Step 3
+# Setup IPSec and related firewall rules.  All rules will be moved to the top of
+# the que.
+# --------------------------------------------------------------------------------
+# Setup IPSec
+/ip ipsec proposal
+add auth-algorithms=sha1 comment="IPSEC LINK_NAME" disabled=no enc-algorithms=3des lifetime=30m name=LINK_NAME pfs-group=modp1024
+
+/ip ipsec peer
+add address=MAIN_PUB/32 comment="IPSEC LINK_NAME" dh-group=modp1024 disabled=no dpd-interval=1m dpd-maximum-failures=2 enc-algorithm=3des exchange-mode=main generate-policy=no hash-algorithm=sha1 lifebytes=0 lifetime=1d nat-traversal=no proposal-check=obey send-initial-contact=yes auth-method=rsa-key key=LINK_NAME-c remote-key=LINK_NAME-s
+
+/ip ipsec policy
+add action=encrypt comment="IPSEC LINK_NAME" disabled=no dst-address=MAIN_NETWORK ipsec-protocols=esp level=unique priority=0 proposal=LINK_NAME protocol=all sa-dst-address=MAIN_PUB sa-src-address=SATELLITE_PUB src-address=SATELLITE_NETWORK tunnel=yes
+
+# Setup Firewall Rules
+/ip firewall nat
+add action=accept chain=srcnat comment="IPSEC LINK_NAME" disabled=no dst-address=MAIN_NETWORK out-interface=SATELLITE_GW_INTERFACE src-address=SATELLITE_NETWORK
+move [/ip firewall nat find comment="IPSEC LINK_NAME"] 0
+
+/ip firewall filter
+add action=accept chain=input comment="IPSEC LINK_NAME" disabled=no src-address=MAIN_NETWORK
+add action=accept chain=input comment="IPSEC LINK_NAME" disabled=no dst-port=500 protocol=udp src-port=500 src-address=MAIN_PUB
+# add action=accept chain=input comment="IPSEC LINK_NAME" disabled=no protocol=ipsec-esp src-address=MAIN_PUB
+add action=accept chain=output comment="IPSEC LINK_NAME" disabled=no protocol=ipsec-esp  src-address=MAIN_PUB
+move [/ip firewall filter find comment="IPSEC LINK_NAME"] 0
