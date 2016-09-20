@@ -1,0 +1,1 @@
+openssl rsautl -encrypt -pubin -inkey $1  -in $2 -out $2".enc"
